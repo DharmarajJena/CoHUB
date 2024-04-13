@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login with Popup Example</title>
+</head>
+<body>
+    <button id="loginButton">Login with Google</button>
+    <div id="message" style="display: none;"></div>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-analytics.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+      
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+  apiKey: "AIzaSyCRQKXLQn0NT93pl-JEVRtRKeYLSPhLy3I",
+  authDomain: "cohub-e6034.firebaseapp.com",
+  projectId: "cohub-e6034",
+  storageBucket: "cohub-e6034.appspot.com",
+  messagingSenderId: "974845853993",
+  appId: "1:974845853993:web:18865e68c82a094314f738",
+  measurementId: "G-KXYHC078FK"
+};
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+
+        // Function to log in user using a popup
+        async function loginWithPopup() {
+            try {
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                // This gives you a Google Access Token. You can use it to access the Google API.
+                const credential = GoogleAuthProvider.credentialFromResult(result);
+                const token = credential.accessToken;
+                result.user.getIdToken().then((idToken) => {
+                    console.log(idToken);
+                    console.log(idToken===credential.idToken);
+                });
+            } catch (error) {
+                console.error("Error logging in with popup:", error);
+            }
+        }
+
+        // Listening for auth state changes (optional)
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("User is signed in:", user);
+            } else {
+                console.log("No user is signed in.");
+            }
+        });
+
+        document.getElementById('loginButton').addEventListener('click', loginWithPopup);
+    </script>
+</body>
+</html>
