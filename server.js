@@ -13,6 +13,8 @@ require('dotenv').config();
 const bodyParser=require('body-parser');
 app.use(bodyParser.json());
 
+app.use('/uploads', express.static('uploads'));
+
 const userRoutes=require('./User/routes');
 // const expertRoutes=require('./Experts/routes');
 

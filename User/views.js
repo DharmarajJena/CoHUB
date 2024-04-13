@@ -1,5 +1,6 @@
 
-const {User,Project}=require('./models');
+const {User,Project,Product}=require('./models');
+
 
 const userRegistration=async(req,res)=>{
 
@@ -50,5 +51,50 @@ const getAllProjects=async(req,res)=>{
         res.status(500).json({ error: 'Internal server error' });
     }
 }
+const addProduct=async(req,res)=>{
 
-module.exports={userRegistration,startProject,getAllProjects};
+    try {
+        data=req.body;
+        console.log(req.body)
+        const newProduct=new Product(data);
+        newProduct.image=req.file.path;
+        newProduct.userID=req.firebaseUser.user_id;
+        const response=await newProduct.save();
+
+        return res.status(200).json({data:response});
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+const getOwnProduct=async(req,res)=>{
+    try {
+        const product=await Product.find({userID:req.firebaseUser.user_id});
+
+        if(!product)
+            return res.status(404).json({message:"No product found!"});
+
+        return res.status(201).json(product);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+const getAllProduct=async(req,res)=>{
+    try {
+        const product=await Product.find();
+
+        if(!product)
+            return res.status(404).json({message:"No product found!"});
+
+        return res.status(201).json(product);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+module.exports={userRegistration,startProject,getAllProjects,addProduct,getOwnProduct,getAllProduct};

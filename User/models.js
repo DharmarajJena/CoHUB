@@ -59,21 +59,50 @@ const projectSchema= new mongoose.Schema({
     }
 })
 
+const productSchema = new mongoose.Schema({
+
+    userID:{
+        type:String,
+        required:true
+    },
+    name: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String,
+        required: true
+    },
+    type:{
+        type:String,
+        required:true
+    },
+    image:{
+        type:String,
+        required:true
+    },
+    video:{
+        type:String
+    },
+    selling_price:{
+        type:Number
+    },
+    rentPrice_perDay:{
+        type:Number
+    },
+    available:{
+        type:Boolean,
+        required:true,
+        default:true
+    }
+})
+
 const User=mongoose.model('User',userSchema);
+
+const Product=mongoose.model('Product',productSchema);
 
 const Project=mongoose.model('Project',projectSchema);
 
-module.exports={User,Project};
+module.exports={User,Project,Product};
 
 
-
-// const productSchema = new mongoose.Schema({
-//     name: {
-//         type: String,
-//         required: true
-//     },
-//     description: {
-//         type: String,
-//         required: true
-//     }
-// })

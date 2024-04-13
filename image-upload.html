@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Product</title>
+</head>
+<body>
+  <h2>Upload Product</h2>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="text" name="name" placeholder="Product Name" required><br>
+    <textarea name="description" placeholder="Description" required></textarea><br>
+    <select name="type" required>
+      <option value="clothing">Clothing</option>
+      <option value="electronics">Electronics</option>
+      <option value="furniture">Furniture</option>
+      <option value="other">Other</option>
+    </select><br>
+    <input type="file" name="image" id="image" required><br>
+    <input type="number" name="selling_price" placeholder="Selling Price" required><br>
+    <input type="number" name="rentPrice_perDay" placeholder="Renting Price Per Day" required><br>
+    <button type="submit">Upload</button>
+  </form>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      console.log(form);
+      const formData = new FormData(form);
+
+      const bearerToken = `eyJhbGciOiJSUzI1NiIsImtpZCI6ImYyOThjZDA3NTlkOGNmN2JjZTZhZWNhODExNmU4ZjYzMDlhNDQwMjAiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRGhhcm1hcmFqIEplbmEiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSmd5S3VxemR5Zi1JUEtYRTQ5Z2tQejBCemFlYnFVTHgzaEdUVkRJSHhnMEQ5czIwM3U9czk2LWMiLCJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vY29odWItZTYwMzQiLCJhdWQiOiJjb2h1Yi1lNjAzNCIsImF1dGhfdGltZSI6MTcxMjk4ODI2MSwidXNlcl9pZCI6Ijg3N3pETndPanhOZFFyRllyZllLUW9oejVVSjMiLCJzdWIiOiI4Nzd6RE53T2p4TmRRckZZcmZZS1FvaHo1VUozIiwiaWF0IjoxNzEyOTg4MjYxLCJleHAiOjE3MTI5OTE4NjEsImVtYWlsIjoiZGhhcm1hcmFqamVuYTY5NEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJnb29nbGUuY29tIjpbIjExODI3NDY4NDA3NDkyMjMyMjI1OSJdLCJlbWFpbCI6WyJkaGFybWFyYWpqZW5hNjk0QGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6Imdvb2dsZS5jb20ifX0.GxraO10BoTPf6DtuZjQdqgfmW46LK0lKH8EJ81kWjZmZ5HCMsztMpPAw0CZq834hMuVf--uAbXBJYm_6J5hLubYfib1NbkwkH253RCbm3eOFHDpLhIJVORou2l7_bc-jorJxKLD8nBDorpbdA2lp5NgMKn7sIiznvkQ9tXs7lzP-uDDgrkHtvTQP4_Q58_6RoS7Wa9VH96DHBxVwQy5kpN-67PdRss0ko9Nq48xbV14kUqXY6uS9Rtr8rvDf6wgjIBmE-UORijdESBKqv-t8b9bwBYJLuCFEsI8T7QquEOnOC9t7HhuA4nJZTNStpmkhP_xCA5BVDDWhyHsjea0r4Q`;
+      const apiUrl = 'http://localhost:3000/addProduct';
+
+      try {
+        console.log(formData);
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${bearerToken}`
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload product');
+        }
+
+        alert('Product uploaded successfully!');
+        // form.reset();
+      } catch (error) {
+        console.error(error);
+        alert('An error occurred while uploading the product.');
+      }
+    });
+  </script>
+</body>
+</html>
