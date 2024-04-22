@@ -94,8 +94,68 @@ const productSchema = new mongoose.Schema({
         type:Boolean,
         required:true,
         default:true
+    },
+    pickup_location:{
+        type: { type: String, default: 'Point',required:true },
+        coordinates: { type:[Number] , required:true}
+    },
+})
+
+const orderSchema= new mongoose.Schema({
+    userID:{
+        type:String,
+        required:true
+    },
+    sellerID:{
+        type:String,
+        required:true
+    },
+    productID:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+        required:true 
+    },
+    price:{
+        type:Number,
+        required:true
+    },
+    type: { 
+        type: String,
+        enum: ['buy', 'rent']
+    },
+    paymentId:{
+        type:String,
+        default:null
+    },
+    orderId:{
+        type:String,
+    },
+    orderDate: {
+        type: Date,
+        default: Date.now
+    },
+    returnDate:{
+        type:Date,
+        default:null
+    },
+    rentDurationDays:{
+        type:Number,
+        default:null
+    },
+    returned:{
+        type:Boolean,
+        default:false
+    },
+    status:{
+        type:String,
+        enum:['pending','completed'],
+        default:'pending'
     }
 })
+
+const Order=mongoose.model('Order',orderSchema);
+
+productSchema.index({ pickup_location: '2dsphere' });
 
 const User=mongoose.model('User',userSchema);
 
@@ -103,6 +163,6 @@ const Product=mongoose.model('Product',productSchema);
 
 const Project=mongoose.model('Project',projectSchema);
 
-module.exports={User,Project,Product};
+module.exports={User,Project,Product,Order};
 
 

@@ -39,7 +39,7 @@
                 // This gives you a Google Access Token. You can use it to access the Google API.
                 const credential = GoogleAuthProvider.credentialFromResult(result);
                 const token = credential.accessToken;
-                result.user.getIdToken().then((idToken) => {
+                result.user.getIdToken(true).then((idToken) => {
                     console.log(idToken);
                     console.log(idToken===credential.idToken);
                 });

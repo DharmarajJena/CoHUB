@@ -18,7 +18,6 @@ class Middleware{
             if(decodedValue){
                 return next();
             }
-            // return res.status(401).json({error:'Unauthorized'});
         }catch (error) {
             console.error(error);
             return res.status(401).json({error:'Invalid token'});

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h1>Payment Page</h1>
+    <div>
+        <label for="returnDate">Return Date:</label>
+        <input type="date" id="returnDate" name="returnDate" required>
+        <button id="payButton">Pay with Razorpay</button>
+    </div>
+
+    <script>
+        document.getElementById('payButton').addEventListener('click', function () {
+            var returnDateValue = document.getElementById('returnDate').value;
+            if (!returnDateValue) {
+                alert('Please enter a return date.');
+                return;
+            }
+            const bearerToken = `eyJhbGciOiJSUzI1NiIsImtpZCI6ImYyOThjZDA3NTlkOGNmN2JjZTZhZWNhODExNmU4ZjYzMDlhNDQwMjAiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRGhhcm1hcmFqIEplbmEiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSmd5S3VxemR5Zi1JUEtYRTQ5Z2tQejBCemFlYnFVTHgzaEdUVkRJSHhnMEQ5czIwM3U9czk2LWMiLCJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vY29odWItZTYwMzQiLCJhdWQiOiJjb2h1Yi1lNjAzNCIsImF1dGhfdGltZSI6MTcxMzQzOTAzMywidXNlcl9pZCI6Ijg3N3pETndPanhOZFFyRllyZllLUW9oejVVSjMiLCJzdWIiOiI4Nzd6RE53T2p4TmRRckZZcmZZS1FvaHo1VUozIiwiaWF0IjoxNzEzNDM5MDMzLCJleHAiOjE3MTM0NDI2MzMsImVtYWlsIjoiZGhhcm1hcmFqamVuYTY5NEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJnb29nbGUuY29tIjpbIjExODI3NDY4NDA3NDkyMjMyMjI1OSJdLCJlbWFpbCI6WyJkaGFybWFyYWpqZW5hNjk0QGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6Imdvb2dsZS5jb20ifX0.hzhD8FOBcbwQBO-hDg_6E2PiI07orbngi-Bp9EaZwKDbyolaFH6X42-1x_YwQyw_BYw4aim9dt3TRmTgL0AYmTWBZOfoOlAI1yjxLnfZUedmFGXSkPddh2wxBk-CyeeauX8W169s1gVlh4Xk4MmepAJ6EiYIZc8f8Fu5aEpfl9fcmXGPdWHZjUD_gzdlVo-cO9U2eawk7mfHVaigfqKfKrS4OLarYh5p-IiklYUgG6qyfs0TfJppyWWjANgmu-b-BltDZhDDmF08xTaFdZhWbAPJDwXWxv0i6e6RwSFq23jS60ryGai27p43n-xJLGBnd4nsEW9ZogR6xb8zyBgYgQ`;
+            fetch('http://localhost:3000/getBuyOrderSummary/661a740bedc74481f333e1c4', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${bearerToken}`
+                },
+                body: JSON.stringify({
+                    "type": "rent",
+                    "returnDate": returnDateValue
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                var options = {
+                    "key": 'rzp_test_84QavGB6R6hnD9',
+                    "amount": data.amount,
+                    "currency": 'INR',
+                    "name": "Acme Corp",
+                    "description": "Test Transaction",
+                    "image": "",
+                    "order_id": data.order_id,
+                    "handler": function (response) {
+                        alert('Payment successful. Payment ID: ' + response.razorpay_payment_id);
+                        fetch('http://localhost:3000/paymentSuccess/661a740bedc74481f333e1c4', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${bearerToken}`
+                            },
+                            body: JSON.stringify({
+                                orderId: data._id,
+                                paymentId: response.razorpay_payment_id
+                            })
+                        });
+                    },
+                    "prefill": {
+                        "name": "Gaurav Kumar",
+                        "email": "gaurav.kumar@example.com",
+                        "contact": "9999999999"
+                    },
+                    "notes": {
+                        "address": "Razorpay Corporate Office"
+                    },
+                    "theme": {
+                        "color": "#3399cc"
+                    }
+                };
+                var rzp1 = new Razorpay(options);
+                rzp1.open();
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
