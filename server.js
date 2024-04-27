@@ -1,12 +1,15 @@
 const express = require('express');
 const app=express();
 const cors=require('cors');
+const cookieParser = require('cookie-parser');
+
 
 const db = require('./db');
 const middleware=require('./middleware');
 
 app.use(cors());
 app.use(middleware.logRequest);
+app.use(cookieParser());
 
 require('dotenv').config();
 

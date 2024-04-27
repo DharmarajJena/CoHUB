@@ -53,9 +53,16 @@ const projectSchema= new mongoose.Schema({
         type:String,
         required:true
     },
+    ideal_description:{
+        type:String
+    },
     startedAt:{
         type:Date,
         default:Date.now()
+    },
+    keywords:{
+        type:[String],
+        default:[]
     }
 })
 

@@ -5,6 +5,9 @@ const shortid = require('shortid');
 require('dotenv').config();
 const crypto = require('crypto');
 const { error } = require('console');
+const axios=require('axios');
+const { request } = require('http');
+const mongoose=require('mongoose');
 
 const userRegistration = async (req, res) => {
 
@@ -62,11 +65,66 @@ const getProjectDetails = async (req, res) => {
         id = req.params.projectID;
         const project = await Project.findById(id);
         if (!project)
-            return res.status(204).json({ message: "Candidate not found" });
-        return res.status(200).json(project);
+            return res.status(204).json({ message: "Project not found" });
+
+        const url='http://127.0.0.1:5000/getLlmResponse';
+
+        const payload={
+            "idea":project.description
+        }
+        //"a startup investment application where user can invest in startups based on equity in exchange of some amount."
+        let llm_response=await axios.post(url,payload);
+        llm_response=llm_response.data.replace(/\n/g,'');
+
+        // console.log(llm_response);
+        console.log('----------------------------------------------------------')
+        
+        const response={
+            ...project,
+            "llm_description":llm_response
+        }
+        
+        const document=project.description+" "+project.ideal_description+" "+project.type;
+        
+        const keyword_url='http://127.0.0.1:5000/getKeywords'
+        
+        var payload1={
+            "document":document
+        }
+        
+        let keywords=await axios.post(keyword_url,payload1);
+        
+        project.keywords=keywords.data;
+        
+        console.log(keywords);
+        await project.save();
+        
+        if(project.ideal_description){
+            return res.status(200).json(project);
+        }
+        return res.status(200).json(response);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+const addIdealDescription=async(req,res)=>{
+    try {
+        id=req.params.projectID;
+        var ideal_desc=req.body.ideal_description;
+        const project=await Project.findById(id);
+        console.log("log1");
+        if(!project)
+            return res.status(204).json({ message: "Project not found" });
+        project.ideal_description=ideal_desc;
+
+        project.save();
+        return res.status(200).json({message:"Ideal description updated successfully."});
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({error:"Internal server error"});
     }
 }
 
@@ -413,9 +471,108 @@ const updateReturnStatus = async (req, res) => {
     }
 }
 
+const getOrderHistory=async(req,res)=>{
+
+    try {
+        let orderHistory= await Order.find({userID:req.firebaseUser.user_id}).lean();
+        if(!orderHistory.length)
+            return res.status(500).json({message:"No order history."});
+        orderHistory= await orderHistory.reduce(async(accPromise,curr)=>{
+            const acc=await accPromise;
+            const seller=await User.findOne({userId:curr.sellerID}).lean();
+            if(seller){
+                acc.push({
+                    seller_name:seller.name,
+                    seller_number:seller.mobile_no,
+                    ...curr,
+                });
+            }
+            return acc;
+        },Promise.resolve([]));
+
+        console.log(orderHistory);
+
+        res.status(200).json(orderHistory);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({message:"Internal server error"});
+    }
+}
+  
+const cohubChatBot=async (req,res)=>{
+
+    try {
+        
+        var prompt=req.body.prompt;
+
+        const url=('http://192.168.16.203:5000/chatBot')
+
+        payload={
+            "prompt":prompt
+        }
+
+        const response=await axios.post(url,payload)
+
+        console.log(response.data);
+
+        return res.status(200).json(response.data);
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({message:"Internal server error."})
+    }
+}
+
+
+const reccomendProducts=async (req,res)=>{
+    try {
+        var projectId=req.params.projectID;
+        
+        const matchingProjects = await Product.aggregate([
+            {
+                $lookup: {
+                    from: 'projects', // Name of the project collection
+                    localField: 'type',
+                    foreignField: 'type',
+                    as: 'matchingProjects'
+                }
+            },
+            {
+                $match: {
+                    $and: [
+                        { matchingProjects: { $ne: [] } }, // Products with matching projects
+                        {
+                            $expr: {
+                                $gt: [
+                                    { $size: "$matchingProjects" },
+                                    0
+                                ]
+                            }
+                        }, // Products with non-empty matchingProjects array
+                        {
+                            $expr: {
+                                $in: ["$description", "$matchingProjects.keywords"]
+                            }
+                        }, // Description in product is in keywords of matchingProjects
+                        {
+                            "matchingProjects._id": projectId
+                        } // Match projectID
+                    ]
+                }
+            }
+        ]).exec();
+
+        return res.status(200).json(matchingProjects);
+
+    } catch (error) {
+        console.error('Error in reccomendProducts:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
 
 module.exports = {
     userRegistration, startProject, getOwnProjects, addProduct, getOwnAvailableProduct,
     getAllProduct, getProductDetails, getProjectDetails, getBuyOrderSummary, paymentSuccess, paymentCompleteWebHook,
-    getRentedProducts,updateReturnStatus
+    getRentedProducts,updateReturnStatus,getOrderHistory,addIdealDescription,cohubChatBot,reccomendProducts
 };
+
