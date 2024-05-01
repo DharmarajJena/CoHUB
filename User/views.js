@@ -1,13 +1,16 @@
-
 const Razorpay = require('razorpay');
 const { User, Project, Product, Order } = require('./models');
 const shortid = require('shortid');
 require('dotenv').config();
 const crypto = require('crypto');
 const { error } = require('console');
-const axios=require('axios');
+const axios = require('axios');
 const { request } = require('http');
-const mongoose=require('mongoose');
+const mongoose = require('mongoose');
+const EventEmitter = require('events');
+
+const eventEmitter = new EventEmitter();
+
 
 const userRegistration = async (req, res) => {
 
@@ -67,39 +70,39 @@ const getProjectDetails = async (req, res) => {
         if (!project)
             return res.status(204).json({ message: "Project not found" });
 
-        const url='http://127.0.0.1:5000/getLlmResponse';
+        const url = 'http://127.0.0.1:5000/getLlmResponse';
 
-        const payload={
-            "idea":project.description
+        const payload = {
+            "idea": project.description
         }
         //"a startup investment application where user can invest in startups based on equity in exchange of some amount."
-        let llm_response=await axios.post(url,payload);
-        llm_response=llm_response.data.replace(/\n/g,'');
+        let llm_response = await axios.post(url, payload);
+        llm_response = llm_response.data.replace(/\n/g, '');
 
         // console.log(llm_response);
         console.log('----------------------------------------------------------')
-        
-        const response={
+
+        const response = {
             ...project,
-            "llm_description":llm_response
+            "llm_description": llm_response
         }
-        
-        const document=project.description+" "+project.ideal_description+" "+project.type;
-        
-        const keyword_url='http://127.0.0.1:5000/getKeywords'
-        
-        var payload1={
-            "document":document
+
+        const document = project.description + " " + project.ideal_description + " " + project.type;
+
+        const keyword_url = 'http://127.0.0.1:5000/getKeywords'
+
+        var payload1 = {
+            "document": document
         }
-        
-        let keywords=await axios.post(keyword_url,payload1);
-        
-        project.keywords=keywords.data;
-        
+
+        let keywords = await axios.post(keyword_url, payload1);
+
+        project.keywords = keywords.data;
+
         console.log(keywords);
         await project.save();
-        
-        if(project.ideal_description){
+
+        if (project.ideal_description) {
             return res.status(200).json(project);
         }
         return res.status(200).json(response);
@@ -109,22 +112,21 @@ const getProjectDetails = async (req, res) => {
     }
 }
 
-const addIdealDescription=async(req,res)=>{
+const addIdealDescription = async (req, res) => {
     try {
-        id=req.params.projectID;
-        var ideal_desc=req.body.ideal_description;
-        const project=await Project.findById(id);
+        id = req.params.projectID;
+        var ideal_desc = req.body.ideal_description;
+        const project = await Project.findById(id);
         console.log("log1");
-        if(!project)
+        if (!project)
             return res.status(204).json({ message: "Project not found" });
-        project.ideal_description=ideal_desc;
-
+        project.ideal_description = ideal_desc;
         project.save();
-        return res.status(200).json({message:"Ideal description updated successfully."});
+        return res.status(200).json({ message: "Ideal description updated successfully." });
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({error:"Internal server error"});
+        return res.status(500).json({ error: "Internal server error" });
     }
 }
 
@@ -193,7 +195,7 @@ const getAllProduct = async (req, res) => {
                     distanceField: 'distance', // This field will contain the distance
                     maxDistance: 5000,
                     spherical: true,
-                    query: { available: true } // Additional query to filter by 'available'
+                    query: { available: true, booked: false } // Additional query to filter by 'available'
                 }
             }
         ]);
@@ -408,8 +410,8 @@ const getRentedProducts = async (req, res) => {
                     'orders.orderDate': 1,
                     'orders.rentDurationDays': 1,
                     'orders.userID': 1,
-                    'orders._id':1,
-                    'orders.returned':1
+                    'orders._id': 1,
+                    'orders.returned': 1
                 }
             }
         ]);
@@ -447,7 +449,7 @@ const updateReturnStatus = async (req, res) => {
         if (!order || order.type === 'buy') {
             return res.status(404).json({ message: "Order does not exist or product is already purchased." });
         }
-        var id=order.productID;
+        var id = order.productID;
         const product = await Product.findById(id);
 
         // Check if product exists
@@ -464,54 +466,54 @@ const updateReturnStatus = async (req, res) => {
 
         // Send a success response
         return res.status(200).json({ message: "Return processed successfully." });
-        
+
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Internal server error." });
     }
 }
 
-const getOrderHistory=async(req,res)=>{
+const getOrderHistory = async (req, res) => {
 
     try {
-        let orderHistory= await Order.find({userID:req.firebaseUser.user_id}).lean();
-        if(!orderHistory.length)
-            return res.status(500).json({message:"No order history."});
-        orderHistory= await orderHistory.reduce(async(accPromise,curr)=>{
-            const acc=await accPromise;
-            const seller=await User.findOne({userId:curr.sellerID}).lean();
-            if(seller){
+        let orderHistory = await Order.find({ userID: req.firebaseUser.user_id }).lean();
+        if (!orderHistory.length)
+            return res.status(500).json({ message: "No order history." });
+        orderHistory = await orderHistory.reduce(async (accPromise, curr) => {
+            const acc = await accPromise;
+            const seller = await User.findOne({ userId: curr.sellerID }).lean();
+            if (seller) {
                 acc.push({
-                    seller_name:seller.name,
-                    seller_number:seller.mobile_no,
+                    seller_name: seller.name,
+                    seller_number: seller.mobile_no,
                     ...curr,
                 });
             }
             return acc;
-        },Promise.resolve([]));
+        }, Promise.resolve([]));
 
         console.log(orderHistory);
 
         res.status(200).json(orderHistory);
     } catch (error) {
         console.error(error);
-        res.status(500).json({message:"Internal server error"});
+        res.status(500).json({ message: "Internal server error" });
     }
 }
-  
-const cohubChatBot=async (req,res)=>{
+
+const cohubChatBot = async (req, res) => {
 
     try {
-        
-        var prompt=req.body.prompt;
 
-        const url=('http://192.168.16.203:5000/chatBot')
+        var prompt = req.body.prompt;
 
-        payload={
-            "prompt":prompt
+        const url = ('http://192.168.2.205:5000/chatBot')
+
+        payload = {
+            "prompt": prompt
         }
 
-        const response=await axios.post(url,payload)
+        const response = await axios.post(url, payload)
 
         console.log(response.data);
 
@@ -519,19 +521,19 @@ const cohubChatBot=async (req,res)=>{
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({message:"Internal server error."})
+        return res.status(500).json({ message: "Internal server error." })
     }
 }
 
 
-const reccomendProducts=async (req,res)=>{
+const reccomendProducts = async (req, res) => {
     try {
-        var projectId=req.params.projectID;
-        
+        var projectId = req.params.projectID;
+
         const matchingProjects = await Product.aggregate([
             {
                 $lookup: {
-                    from: 'projects', // Name of the project collection
+                    from: 'Projects', // Name of the project collection
                     localField: 'type',
                     foreignField: 'type',
                     as: 'matchingProjects'
@@ -570,9 +572,86 @@ const reccomendProducts=async (req,res)=>{
     }
 }
 
+const bookProduct = async (req, res) => {
+
+    try {
+        var product_id = req.params.productID;
+        const response = await Product.findById(product_id);
+
+        response.booked = true;
+        response.booking_date = Date.now();
+        response.booking_users = req.firebaseUser.user_id;
+
+        await response.save();
+
+        return res.status(200).json({ message: "Your product is booked." });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}
+
+const monitorProductStatus = async () => {
+    try {
+        console.log("check init 2");
+        const products = await Product.find({ booked: true }).lean();
+
+        if (!products.length) {
+            return;
+        }
+
+        const productIds = products.map(product => product._id);
+        const promises = productIds.map(productId => eventEmitter.emit('checkProductStatus', productId));
+
+        await Promise.all(promises);
+    } catch (error) {
+        console.error(error);
+        // Handle error appropriately, e.g., log it, notify someone, etc.
+    }
+};
+
+const bookingPayment = async (req, res) => {
+    try {
+        const options = {
+            amount: Math.round(100 * 100), // Convert to smallest currency unit
+            currency: 'INR',
+            receipt: shortid.generate(),
+            payment_capture: 1
+        };
+
+        var response = await razorpay_client.orders.create(options);
+        console.log(response);
+        return res.status(200).json(response);
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}
+
+const check = () => {
+    console.log("Check init.")
+    setInterval(() => {
+        monitorProductStatus();
+    }, 1000*60*60);
+}
+
+eventEmitter.on('checkProductStatus', async (productId) => {
+    console.log("Check init 3.")
+    const product = await Product.findById(productId);
+    const date_difference = (Date.now() - product.booking_date) / (1000 * 60 * 60 * 24);
+
+    if (product.booked && date_difference >= 1 && product.available === true) {
+        product.booked = false;
+        await product.save();
+    }
+})
+
+
 module.exports = {
     userRegistration, startProject, getOwnProjects, addProduct, getOwnAvailableProduct,
     getAllProduct, getProductDetails, getProjectDetails, getBuyOrderSummary, paymentSuccess, paymentCompleteWebHook,
-    getRentedProducts,updateReturnStatus,getOrderHistory,addIdealDescription,cohubChatBot,reccomendProducts
+    getRentedProducts, updateReturnStatus, getOrderHistory, addIdealDescription, cohubChatBot, reccomendProducts, bookProduct, check, bookingPayment
 };
 

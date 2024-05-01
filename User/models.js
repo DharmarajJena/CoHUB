@@ -106,6 +106,17 @@ const productSchema = new mongoose.Schema({
         type: { type: String, default: 'Point',required:true },
         coordinates: { type:[Number] , required:true}
     },
+    booked:{
+        type:Boolean,
+        default:false
+    },
+    booking_date:{
+        type:Date,
+        default:Date.now()
+    },
+    booking_users:{
+        type:String //stores the firebase user id of logged in user on booking
+    }
 })
 
 const orderSchema= new mongoose.Schema({

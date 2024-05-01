@@ -24,6 +24,7 @@ const userRoutes=require('./User/routes');
 app.use('/',userRoutes);
 // app.use('/expert',logRequest,expertRoutes);
 
+const {check}=require('./User/views');
 
 
 app.get('/hit',middleware.verifyFirebaseToken,async(req,res)=>{
@@ -41,4 +42,5 @@ app.get('/get',async(req,res)=>{
 const PORT=process.env.PORT || 3000;
 app.listen(PORT,()=>{
     console.log(`App is running on port ${PORT}...`);
+    check();
 });

@@ -24,41 +24,16 @@ class Middleware {
         if (!token)
             return res.status(401).json({error: 'Unauthorized'});
 
-        try {
+        try{
             const decodedValue = await admin.auth().verifyIdToken(token);
-            // console.log(decodedValue);
-            console.log(1);
-            
-            // Check if the token will expire within the next 5 minutes
-            // if (decodedValue.exp - Date.now() / 1000 < 300) {
-                const newToken = await this.refreshToken(token,res);
-                // Set the new token in response headers
-                res.set("Authorization", `Bearer ${newToken}`);
-            // }
+            console.log(decodedValue);
             
             req.firebaseUser = decodedValue;
 
             return next();
-        } catch (error) {
+        }catch (error) {
             console.error(error);
-            if (error.code === 'auth/argument-error') {
-                // Token has expired, attempt to refresh it
-                try {
-                    const decodedValue = await admin.auth().verifySessionCookie(token, true);
-                    // Set the new token in response headers
-                    // res.set("Authorization", `Bearer ${newToken}`);
-                    // Proceed with the request using the new token
-                    // const decodedValue = await admin.auth().verifyIdToken(newToken);
-                    req.firebaseUser = decodedValue;
-                    return next();
-                } catch (refreshError) {
-                    console.error("Error refreshing token:", refreshError);
-                    return res.status(401).json({error: 'Error refreshing token'});
-                }
-            } else {
-                // Other authentication errors
-                return res.status(401).json({error: 'Invalid token'});
-            }
+            return res.status(401).json({error: 'Invalid token'});
         }
     }
 
