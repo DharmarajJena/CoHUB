@@ -8,6 +8,7 @@ const axios = require('axios');
 const { request } = require('http');
 const mongoose = require('mongoose');
 const EventEmitter = require('events');
+const { messaging } = require('firebase-admin');
 
 const eventEmitter = new EventEmitter();
 
@@ -31,11 +32,24 @@ const userRegistration = async (req, res) => {
     }
 }
 
+const getUserInfo=async(req,res)=>{
+    try {
+        const user=await User.findOne({userId:req.firebaseUser.user_id});
+        if(!user){
+            return res.status(404).json({message:"User not found"});
+        }
+        return res.status(200).json(user);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({message:"Internal server error"});
+    }
+}
+
 const startProject = async (req, res) => {
 
     try {
-
-        data = req.body;
+        console.log("here")
+        const data = req.body;
         const newProject = new Project(data);
         newProject.userID = req.firebaseUser.user_id;
         const response = await newProject.save();
@@ -49,7 +63,7 @@ const startProject = async (req, res) => {
 
 const getOwnProjects = async (req, res) => {
     try {
-        const projects = await Project.find({ userID: req.firebaseUser.user_id });
+        const projects = await Project.find({ userID: req.firebaseUser.user_id }).sort({startedAt:-1});
 
         if (!projects)
             return res.status(404).json({ message: "No projects found!" });
@@ -66,11 +80,11 @@ const getProjectDetails = async (req, res) => {
 
     try {
         id = req.params.projectID;
-        const project = await Project.findById(id);
+        const project = await Project.findById(id).lean();
         if (!project)
             return res.status(204).json({ message: "Project not found" });
 
-        const url = 'http://127.0.0.1:5000/getLlmResponse';
+        const url = 'http://127.0.0.1:5000/getLlmResponse'; 
 
         const payload = {
             "idea": project.description
@@ -86,21 +100,22 @@ const getProjectDetails = async (req, res) => {
             ...project,
             "llm_description": llm_response
         }
+        console.log(response);
 
         const document = project.description + " " + project.ideal_description + " " + project.type;
 
-        const keyword_url = 'http://127.0.0.1:5000/getKeywords'
+        // const keyword_url = 'http://127.0.0.1:5000/getKeywords'
 
-        var payload1 = {
-            "document": document
-        }
+        // var payload1 = {
+        //     "document": document
+        // }
 
-        let keywords = await axios.post(keyword_url, payload1);
+        // let keywords = await axios.post(keyword_url, payload1);
 
-        project.keywords = keywords.data;
+        // project.keywords = keywords.data;
 
-        console.log(keywords);
-        await project.save();
+        // console.log(keywords);
+        // await project.save();
 
         if (project.ideal_description) {
             return res.status(200).json(project);
@@ -134,7 +149,7 @@ const addProduct = async (req, res) => {
     try {
         // Parse body data assuming 'req.body' has already been parsed as JSON by body-parser middleware
         let data = req.body;
-
+        console.log("log1");
         // Check if 'pickup_location' is in string format and parse it
         if (typeof data.pickup_location === 'string') {
             data.pickup_location = JSON.parse(data.pickup_location);
@@ -149,6 +164,7 @@ const addProduct = async (req, res) => {
         } else {
             return res.status(400).json({ error: 'No image uploaded' });
         }
+        console.log("log2");
 
         // Handle user data from Firebase authentication
         if (req.firebaseUser && req.firebaseUser.user_id) {
@@ -180,11 +196,24 @@ const getOwnAvailableProduct = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 }
-
+const getlanglat=async(req,res)=>{
+    try {
+        const user=await User.findOne({userId:req.firebaseUser.user_id});
+        console.log(user.address.coordinates[0]);
+        return res.status(200).json({"add":user.address});
+    } catch (error) {
+        console.error(error);
+    }
+}
 const getAllProduct = async (req, res) => {
     try {
-        const longitude = parseFloat(req.headers.longitude);
-        const latitude = parseFloat(req.headers.latitude);
+        // const longitude = parseFloat(req.headers.longitude);
+        // const latitude = parseFloat(req.headers.latitude);
+        const user=await User.findOne({userId:req.firebaseUser.user_id});
+        if(!user)
+            return res.status(404).json({message:"User address not found"});
+        const longitude=user.address.coordinates[0];
+        const latitude=user.address.coordinates[1];
         const product = await Product.aggregate([
             {
                 $geoNear: {
@@ -263,14 +292,14 @@ const getBuyOrderSummary = async (req, res) => {
         }
 
         const options = {
-            amount: Math.round(amount * 100), // Convert to smallest currency unit
+            amount: Math.round((amount-100) * 100), // Convert to smallest currency unit
             currency: 'INR',
             receipt: shortid.generate(),
             payment_capture: 1
         };
 
         const response = await razorpay_client.orders.create(options);
-
+        amount=amount-100;
         const data = {
             ...req.body,
             price: amount,
@@ -313,13 +342,14 @@ const paymentSuccess = async (req, res) => {
         order.paymentId = paymentId;
 
         // Save the updated order
-        const response = await order.save();
+        var response = await order.save();
 
         var product_id = req.params.productID;
 
         response = await Product.findById(product_id);
 
         response.available = false;
+        response.booked=false;
 
         response.save();
 
@@ -506,11 +536,12 @@ const cohubChatBot = async (req, res) => {
     try {
 
         var prompt = req.body.prompt;
+        console.log(prompt);
 
-        const url = ('http://192.168.2.205:5000/chatBot')
+        const url = ('http://127.0.0.1:5000/chatBot')
 
         payload = {
-            "prompt": prompt
+            "input_text": prompt,
         }
 
         const response = await axios.post(url, payload)
@@ -592,6 +623,20 @@ const bookProduct = async (req, res) => {
     }
 }
 
+const getBookedProducts=async(req,res)=>{
+
+    try {
+        const products=await Product.find({
+            booking_users:req.firebaseUser.user_id,booked:true,available:true
+        })
+
+        return res.status(200).json(products);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}
+
 const monitorProductStatus = async () => {
     try {
         console.log("check init 2");
@@ -652,6 +697,7 @@ eventEmitter.on('checkProductStatus', async (productId) => {
 module.exports = {
     userRegistration, startProject, getOwnProjects, addProduct, getOwnAvailableProduct,
     getAllProduct, getProductDetails, getProjectDetails, getBuyOrderSummary, paymentSuccess, paymentCompleteWebHook,
-    getRentedProducts, updateReturnStatus, getOrderHistory, addIdealDescription, cohubChatBot, reccomendProducts, bookProduct, check, bookingPayment
+    getRentedProducts, updateReturnStatus, getOrderHistory, addIdealDescription, cohubChatBot, reccomendProducts, bookProduct, check,
+    bookingPayment,getBookedProducts,getlanglat,getUserInfo
 };
 

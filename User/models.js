@@ -23,15 +23,16 @@ const userSchema = new mongoose.Schema({
             message: props => `${props.value} is not a valid mobile number!`
         }
     },
-    address: {
-        type: String,
-        required: true
+    address:{
+        type: { type: String, default: 'Point',required:true },
+        coordinates: { type:[Number] , required:true}
     },
     userId:{
         type:String,
         required:true,
         unique:true
-    }
+    },
+
 })
 
 const projectSchema= new mongoose.Schema({
@@ -42,8 +43,7 @@ const projectSchema= new mongoose.Schema({
     },
     name:{
         type:String,
-        required:true,
-        unique:true
+        required:true
     },
     type:{
         type:String,
@@ -174,6 +174,7 @@ const orderSchema= new mongoose.Schema({
 const Order=mongoose.model('Order',orderSchema);
 
 productSchema.index({ pickup_location: '2dsphere' });
+userSchema.index({ address: '2dsphere' });
 
 const User=mongoose.model('User',userSchema);
 

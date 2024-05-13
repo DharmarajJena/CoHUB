@@ -23,10 +23,9 @@ class Middleware {
         const token = authorization.split(' ')[1];
         if (!token)
             return res.status(401).json({error: 'Unauthorized'});
-
         try{
             const decodedValue = await admin.auth().verifyIdToken(token);
-            console.log(decodedValue);
+            // console.log(decodedValue);
             
             req.firebaseUser = decodedValue;
 
